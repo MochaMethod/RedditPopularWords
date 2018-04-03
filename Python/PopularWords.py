@@ -31,7 +31,8 @@ class PopularWords(object):
         self.reddit_client = reddit_client
 
     def scrape_titles(cls, subreddit_name, post_limit, top_time_filter):
-        # Temporarily stores words for later content validation, e.g. needless characters like periods and commas, or words associated with the common_words_list
+        # Temporarily stores words for later content validation, 
+        # e.g. needless characters like periods and commas, or words associated with the common_words_list
         temp_word_list = [] 
 
         if not isinstance(subreddit_name, str):
@@ -76,14 +77,14 @@ class PopularWords(object):
 
         word_count = Counter(words_list)
         for word in word_count:
-            # If the words has been typed by users more than the amt_typed minimum, print it
+            # If the words have been typed by users more than the amt_typed minimum, print it
             if word_count[word] > amt_typed:
                 print (word + " | " + str(word_count[word])).encode('utf-8')
                 
 # Reddit client information
 reddit = praw.Reddit(
-    client_id = 'ID_HERE',
-    client_secret = 'SECRET_HERE',
+    client_id = 'TVpfsnGcthb_Dw',
+    client_secret = 'dCKQLTZgZIHDnCuze5__W0CtNdM',
     user_agent = 'popularwords:v0.0.1 (by /u/popularwords_bot)'
 )
 
