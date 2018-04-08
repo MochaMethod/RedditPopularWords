@@ -2,9 +2,12 @@
 
 import praw
 import time
+import json
+import sys
+import time
 from collections import Counter
 
-version = 'v0.0.5'
+version = 'v0.0.6'
 
 class PopularWords(object):
     # A list of words / characters that will not be included in the words_list
@@ -27,6 +30,9 @@ class PopularWords(object):
         
         self.finished_scraping_words = False
 
+        self.start_time = 0
+        self.time_needed = 0
+
         self.common_words_list = [
         'the', 'be', 'to', 'of', 'an', 'a', 'in', 'that', 'have',
         'i', 'is', 'it', 'for', 'not', 'on', 'with', 'as',
@@ -41,13 +47,14 @@ class PopularWords(object):
         'cant', 'theyre', 'thing', 'need', 'then', 'them', 'through', 'threw', 'own',
         'didnt', 'doesnt', 'yeah', 'only', 'many', 'things', 'around', 'here', 'want', 'am', 'never', 
         'much', 'extra', 'use', 'last', 'no', 'yes', 'some', 'sure', 'last', 'bit', 'end',
-        'good', 'big'
+        'good', 'big', 'thats', 'now', 'he', 'she', 'her', 'him', 'enough', 'first', 'said',
+        'youre', 'dont', 'been', 'isnt', 'because', 'every', 'been', 'other', 'dont', 'same',
+        'those', 'same', 'enough', 'same', 'long', 'off', 'wont', 'down', 'now', 'still', 
+        'make', 'after', 'way', 'hes', 'really', 'way', 'make', 'see', 'these', 'new', 'even'
     ]
 
 
     def scrape_submissions(self, subreddit_name, sort_method, post_limit, sort_method_filter):
-        animation = "|/-\\"
-        idx = 0
         if self.finished_scraping_words is False:
             # Temporarily stores words for later content validation, 
             # e.g. needless characters like periods and commas, or words associated with the common_words_list
@@ -67,6 +74,7 @@ class PopularWords(object):
                 for submission in reddit.subreddit(subreddit_name).hot(limit=post_limit):
                     self.temp_word_list.append(submission.title.split())
                     submission.comments.replace_more(limit=0)
+                    sys.stdout.flush() 
                     for comment in submission.comments.list():
                         self.temp_word_list.append(comment.body.split())
 
@@ -84,9 +92,10 @@ class PopularWords(object):
                     for comment in submission.comments.list():
                         self.temp_word_list.append(comment.body.split())
 
-    
             print 'Temp word list completed. Passing words for validation...'
+            self.start_time = time.time()
             for word_list in self.temp_word_list:
+                time.clock()
                 for word in word_list:
                     if "." in word:
                         word = word.replace(".", "")
@@ -99,11 +108,18 @@ class PopularWords(object):
                     if word.lower() not in self.common_words_list:
                         if word.isalpha():
                             self.words_list.append(word.lower())
-                            print animation[idx % len(animation)] + "\r",
-                            idx += 1
-                            time.sleep(0.1)
+                            if word.lower().encode('utf-8') not in self.word_sentance_dictionary:
+                                self.word_sentance_dictionary[word.lower().encode('utf-8')] = submission.title
+
+                            else:
+                                self.word_sentance_dictionary[word.lower().encode('utf-8')] += submission.title
+
+                            self.time_needed = time.time() - self.start_time
+                            sys.stdout.write("\r" + "- " + str(len(self.words_list)) + " words validated in " + str(self.time_needed) + " seconds.")
+                            sys.stdout.flush()
 
             self.finished_scraping_words = True
+            self.create_json_data(self.word_sentance_dictionary)
 
     def count_words(self, words_list, amt_typed):
     
@@ -120,8 +136,9 @@ class PopularWords(object):
             if word_count[word] > amt_typed:
                 print (word + " | " + str(word_count[word])).encode('utf-8')
 
-    def create_json_data(self):
-        pass
+    def create_json_data(self, data):
+        with open('word_data.txt', 'w') as outfile:
+            json.dump(data, outfile)
 
     def setup(cls):
         print '### PopularWords '+version+' ###'
@@ -154,6 +171,7 @@ class PopularWords(object):
     def start_scrape(self, subreddit_name, sort_method, post_limit, sort_method_filter):
         print 'Scraping posts...'
         popularWords.scrape_submissions(subreddit_name, sort_method, post_limit, sort_method_filter)
+        print "\n"
         print 'Total words scraped: ' + str(len(popularWords.words_list))
 
         amt_typed = input('Enter the minimum threshold for the number of times a word has been posted, this value must be at least 1: ')
