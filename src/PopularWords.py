@@ -54,6 +54,9 @@ class PopularWords(object):
         #: int: Tracks the time needed to scrape and validate.
         self.time_needed = 0
 
+        #: Dict of str/int: Stores words and their count values for export to JSON.
+        self.export_dict = {}
+
         #: List of str: Reddit time filters.
         self.time_filter_list = [
             'all', 'month', 'week', 'day'
@@ -149,7 +152,7 @@ class PopularWords(object):
         Args:
             temp_words_list (list of str): A list of words being temporarily stored for validation.
         '''
-        print 'Temp word list completed. Passing words for validation...'
+        print('Temp word list completed. Passing words for validation...')
         # Start time counter to track how long the scrape / validation will last.
         time.clock()
         self.start_time = time.time()
@@ -187,7 +190,6 @@ class PopularWords(object):
                     self.calculate_process_time()
                     
         self.finished_scraping_words = True
-        self.create_json_data(self.word_sentence_dictionary)
     
     def calculate_process_time(self):
         '''
@@ -213,49 +215,55 @@ class PopularWords(object):
         if not isinstance(amt_typed, int):
             raise ValueError('The amt_typed value passed to PopularWords.count_words is not an integer.')
 
-        print 'Results: '
         word_count = Counter(validated_words_list)
         for word in word_count:
             # If the words have been typed by users more than the amt_typed minimum, print it.
             if word_count[word] > amt_typed:
-                print (word + " | " + str(word_count[word])).encode('utf-8')
+                self.export_dict[word.decode('utf-8')] = word_count[word]
 
-    def create_json_data(self, data):
+        self.create_json_data(self.export_dict, 'word_count.json')
+
+    def create_json_data(self, data, file):
         '''
         The create_json_data method takes in a list and exports it to a text file.
 
         Args:
             data (any type): A data set to be exported.
+            file (str): The file to export to.
         '''
+        # Check if the file parameter is a string.
+        if not isinstance(file, str):
+            raise ValueError('The file value passed to create_json_data must is not a string.')
+
         # Open a text file and export data to it.
-        with open('word_data.txt', 'w') as outfile:
+        with open(file, 'w') as outfile:
             json.dump(data, outfile)
 
     def setup(self):
         '''
         The setup method gathers information via console to pass to the start_scrape method.
         '''
-        print '### PopularWords '+version+' ###'
+        print('### PopularWords '+version+' ###')
 
         # Gather a subreddit name, sorting method and its filter, and the amount of posts to scrape all through console input.
-        subreddit_name = raw_input('Please enter a subreddit name: ').lower()
+        subreddit_name = input('Please enter a subreddit name: ').lower()
         if self.reddit.subreddits.search_by_name(subreddit_name, exact=True) == False:
             raise ValueError('The subreddit entered does not exist')
         if not isinstance(subreddit_name, str):
             raise ValueError('The subreddit name being passed to PopularWords.scrape_titles is not a string.')
 
-        sort_method = raw_input('Please enter a sort method, e.g. `hot` or `top`: ').lower()
+        sort_method = input('Please enter a sort method, e.g. `hot` or `top`: ').lower()
         if sort_method not in self.sort_methods_list:
             raise ValueError('The sort method being passed to PopularWords.scrape_titles is not acceptable. Please use `hot`, `new`, `top`, or `controversial`')
 
         if sort_method == 'top' or sort_method == 'controversial':
-            sort_method_filter = raw_input('Please enter the sort method filter you would like to use, e.g. `all`, `month`, etc.: ' ).lower()
+            sort_method_filter = input('Please enter the sort method filter you would like to use, e.g. `all`, `month`, etc.: ' ).lower()
             if sort_method_filter not in self.time_filter_list:
                 raise ValueError('The sort method filter being passed to PopularWords.scrape_titles is not acceptable. Please use `all`, `month`, `week`, or `day`')
         else:
             sort_method_filter = ''
 
-        post_limit = input('Please enter the amount of submissions to scrape: ')
+        post_limit = int(input('Please enter the amount of submissions to scrape: '))
         if not isinstance(post_limit, int):
             raise ValueError('The post submission limit being passed to PopularWords.scrape_titles is not an integer.')
         if post_limit <= 0:
@@ -273,24 +281,24 @@ class PopularWords(object):
             post_limit (int): The amount of posts to scrape.
             sort_method_filter (str): The timeframe of posts to scrape from.
         '''
-        print 'Scraping posts...'
+        print('Scraping posts...')
         popularWords.scrape_reddit(subreddit_name, sort_method, post_limit, sort_method_filter)
-        print "\n"
-        print 'Total words scraped: ' + str(len(popularWords.validated_words_list))
+        print("\n")
+        print('Total words scraped: ' + str(len(popularWords.validated_words_list)))
 
-        amt_typed = input('Enter the minimum threshold for the number of times a word has been posted, this value must be at least 1: ')
+        amt_typed = int(input('Enter the minimum threshold for the number of times a word has been posted, this value must be at least 1: '))
         # Check if the amt_typed paramter is an int.
         if not isinstance(amt_typed, int):
             raise ValueError('The minimum threshold being passed to PopularWords.count_words is not an integer.')
         # Check if the amt_typed paramater is zero or less.
         if amt_typed <= 0:
             raise ValueError('The minimum threshold must be at least 1.')
-        print 'Checking how many times each word has been said...'
-        print
+        print('Checking how many times each word has been said...')
+        print()
 
         popularWords.count_words(popularWords.validated_words_list, amt_typed)
 
-print 'Initializing...'
+print('Initializing...')
 popularWords = PopularWords()
 popularWords.setup()
                 
